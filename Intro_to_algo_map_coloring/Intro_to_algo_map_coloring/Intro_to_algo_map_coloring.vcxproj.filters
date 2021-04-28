@@ -19,4 +19,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="le450_5a.col">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="le450_15b.col">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="le450_25a.col">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>
