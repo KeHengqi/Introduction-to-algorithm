@@ -47,7 +47,14 @@ private:
 
 void Graph::Create_graph()
 {
+	char type;
+	Node_type source, dest;
+	cin >> type;
+	if (type == 'e')
+	{
+		cin >> source >> dest;
 
+	}
 }
 
 Graph::Graph(int vn)
