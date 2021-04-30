@@ -1,4 +1,7 @@
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <string.h>
 using namespace std;
 
 #define Node_type int
@@ -160,8 +163,32 @@ Graph::~Graph()
 	vertex_num = 0;
 }
 
+/* Read the file */
+void File_input(string file_path)
+{
+		ifstream OpenFile(file_path);
+		char message_type;
+		while (!OpenFile.eof())
+		{
+			OpenFile.get(message_type);
+			if (message_type == 'c')
+			{
+
+			}
+		}
+}
+
 int main()
 {
+	char input_type;
+	cin >> input_type;
+	if (input_type == 'f' || input_type == 'F')
+	{
+		string file_name;
+		cin >> file_name;
+		string path = "./" + file_name;
+		File_input(path);
+	}
 	
 	return 0;
 }
