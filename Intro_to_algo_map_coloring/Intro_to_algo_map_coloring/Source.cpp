@@ -51,7 +51,7 @@ class Graph
 {
 public:
 	Graph(int vn = 0);
-	void Create_graph();
+	void Create_graph(ifstream& OpenFile);
 	void Add_edge(Node_type source, Node_type dest);
 	~Graph();
 	friend class Vertex;
@@ -143,20 +143,24 @@ void Graph::Add_edge(Node_type source, Node_type dest)
 	}
 }
 
-void Graph::Create_graph()
+void Graph::Create_graph(ifstream& OpenFile)
 {
 	char type;
 	Node_type source, dest;
-	cin >> type;
-	int i;
-	if (type == 'e')
+	while (!OpenFile.eof())
 	{
-		cin >> source >> dest;
-		Add_edge(source, dest);
+		OpenFile >> type;
+		int i;
+		if (type == 'e')
+		{
+			OpenFile >> source >> dest;
+			Add_edge(source, dest);
+		}
 	}
 
 }
 
+/* Need to be updated */
 Graph::~Graph()
 {
 	delete[] vertexs;
@@ -164,19 +168,42 @@ Graph::~Graph()
 }
 
 /* Read the file */
-void File_input(string file_path)
+void File_input(ifstream& OpenFile, int& num_of_vertice, int& num_of_edge, int& num_of_color)
 {
-		ifstream OpenFile(file_path);
+		//ifstream OpenFile(file_path);
 		char message_type;
+		char useless_message[300];
+		char color_message[300];
+		strcpy(color_message, "number of classes");
+		char* temp_color_message;
 		while (!OpenFile.eof())
 		{
 			OpenFile.get(message_type);
 			if (message_type == 'c')
 			{
+				/* get the useless message */
+				OpenFile.getline(useless_message, 300);
+				/* If the string has message of coloring, then get the number of color */
+				if (strstr(useless_message, color_message))
+				{
+					temp_color_message = strrchr(useless_message, ' ');
+					strcpy(color_message, temp_color_message);
 
+				}
+			}
+			else if (message_type == 'p')
+			{
+				string useless;
+				int num_of_vertice;
+				int num_of_edge;
+				OpenFile >> useless >> num_of_vertice >> num_of_edge;
+				cout << num_of_vertice << ' ' << num_of_edge << endl;
+				return;
 			}
 		}
 }
+
+Graph* graph;
 
 int main()
 {
@@ -187,7 +214,16 @@ int main()
 		string file_name;
 		cin >> file_name;
 		string path = "./" + file_name;
-		File_input(path);
+		/* Read the graph from the file */
+		ifstream OpenFile(path);
+		int num_of_vertice, num_of_edge, num_of_color;
+		File_input(OpenFile, num_of_vertice, num_of_edge, num_of_color);
+		graph = new Graph(num_of_vertice);
+		graph->Create_graph(OpenFile);
+
+
+		delete graph;
+		OpenFile.close();
 	}
 	
 	return 0;
