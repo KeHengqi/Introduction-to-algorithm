@@ -1,39 +1,18 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <string.h>
 using namespace std;
-
 #define Node_type int
-
-class Vertex
-{
-public:
-	Vertex(Node_type v = (Node_type) 0, int d = 0, Adjnode* f = NULL, int lcn = 0) :vertex(v),  degree(d), first(f), Left_color_num(lcn) {};
-	~Vertex();
-	friend class Graph;
-private:
-	/* Store the vertex message */
-	Node_type vertex;
-	/* Store the degree of the message */
-	int degree;
-	/* Store the adjacent vertex in list form */
-	Adjnode* first;
-	/* Store the number of the color node can use */
-	int Left_color_num;
-};
-
-/* TODO: update the function */
-Vertex::~Vertex()
-{
-}
 
 class Adjnode
 {
 public:
-	Adjnode(Node_type nn = 0, Adjnode* n = NULL): node_num(nn), next(n){};
+	Adjnode(Node_type nn = 0, Adjnode* n = NULL) : node_num(nn), next(n) {};
 	~Adjnode();
 	friend class Graph;
+	friend class Vertex;
 private:
 	/* Store the vertex message */
 	Node_type node_num;
@@ -46,13 +25,59 @@ Adjnode::~Adjnode()
 {
 }
 
+class Vertex
+{
+public:
+	Vertex(Node_type v = (Node_type) 0, int d = 0, Adjnode* f = NULL, int lcn = 0, int vc = 0) :
+		vertex(v), degree(d), first(f), Left_color_num(lcn), vertex_color(vc) {
+		able_color = NULL;
+	};
+	~Vertex();
+	friend class Graph;
+	friend class Adjnode;
+private:
+	/* Store the vertex message */
+	Node_type vertex;
+	/* Store the degree of the message */
+	int degree;
+	/* Store the adjacent vertex in list form */
+	Adjnode* first;
+	/* Store the number of the color node can use */
+	int Left_color_num;
+	/* Store the color the node being colored */
+	int vertex_color;
+	/* Store the color message */
+	int* able_color;
+};
+
+/* May have problem */
+Vertex::~Vertex()
+{
+	if (able_color != NULL)
+	{
+		delete[] able_color;
+	}
+	if (first != NULL)
+	{
+		Adjnode* p = first;
+		while (p->next)
+		{
+			Adjnode* Delete = p;
+			p = p->next;
+			delete Delete;
+		}
+		delete p;
+	}
+}
+
 /* Not ordered graph */
 class Graph
 {
 public:
-	Graph(int vn = 0);
+	Graph(int vn = 0, int cn = 0);
 	void Create_graph(ifstream& OpenFile);
 	void Add_edge(Node_type source, Node_type dest);
+	void Search_the_adjacent(Node_type source);
 	~Graph();
 	friend class Vertex;
 	friend class Adjnode;
@@ -60,19 +85,43 @@ public:
 private:
 	Vertex* vertexs;
 	int vertex_num;
+	int color_num;
 };
 
-/* TODO: Need to improve the robustness, but now need to finish the experiment */
-Graph::Graph(int vn)
+/* In order to find out the adjacent node */
+void Graph::Search_the_adjacent(Node_type source)
 {
-	vertexs = new Vertex[vn];
+	Adjnode* p = vertexs[source].first;
+	if (p != NULL)
+	{
+		cout << "Source node " << source << " 's adjacent nodes are:";
+		while (p->next != NULL)
+		{
+			cout << ' ' << p->node_num;
+			p = p->next;
+		}
+		cout << ' ' << p->node_num << endl;
+	}
+	else
+	{
+		cout << "Source node " << source << " is isolated" << endl;
+	}
+}
+
+/* TODO: Need to improve the robustness, but now need to finish the experiment */
+Graph::Graph(int vn, int cn)
+{
+	vertexs = new Vertex[vn + 1];
 	int i;
 	/* Time complexity: O(N) */
-	for (i = 0; i < vn; i++)
+	for (i = 1; i < vn + 1; i++)
 	{
 		vertexs[i].vertex = i;
+		vertexs[i].Left_color_num = cn;
+		vertexs[i].able_color = new int[cn];
 	}
 	vertex_num = vn;
+	color_num = cn;
 }
 
 /* Add edge function */
@@ -174,8 +223,10 @@ void File_input(ifstream& OpenFile, int& num_of_vertice, int& num_of_edge, int& 
 		char message_type;
 		char useless_message[300];
 		char color_message[300];
-		strcpy(color_message, "number of classes");
+		strcpy_s(color_message, "number of classes");
 		char* temp_color_message;
+		/* In order to take only one color message */
+		int color_flag = 0;
 		while (!OpenFile.eof())
 		{
 			OpenFile.get(message_type);
@@ -184,20 +235,24 @@ void File_input(ifstream& OpenFile, int& num_of_vertice, int& num_of_edge, int& 
 				/* get the useless message */
 				OpenFile.getline(useless_message, 300);
 				/* If the string has message of coloring, then get the number of color */
-				if (strstr(useless_message, color_message))
+				if (strstr(useless_message, color_message) && color_flag == 0)
 				{
 					temp_color_message = strrchr(useless_message, ' ');
-					strcpy(color_message, temp_color_message);
-
+					strcpy_s(color_message, temp_color_message);
+					/* May have problem */
+					temp_color_message = strtok(color_message, " ");
+					int color_num = atoi(temp_color_message);
+					num_of_color = color_num;
+					/* Only take one time */
+					color_flag = 1;
 				}
 			}
 			else if (message_type == 'p')
 			{
 				string useless;
-				int num_of_vertice;
-				int num_of_edge;
 				OpenFile >> useless >> num_of_vertice >> num_of_edge;
 				cout << num_of_vertice << ' ' << num_of_edge << endl;
+
 				return;
 			}
 		}
@@ -218,9 +273,16 @@ int main()
 		ifstream OpenFile(path);
 		int num_of_vertice, num_of_edge, num_of_color;
 		File_input(OpenFile, num_of_vertice, num_of_edge, num_of_color);
-		graph = new Graph(num_of_vertice);
+		graph = new Graph(num_of_vertice, num_of_color);
 		graph->Create_graph(OpenFile);
 
+		int t = 10;
+		while (t--)
+		{
+			int s;
+			cin >> s;
+			graph->Search_the_adjacent(s);
+		}
 
 		delete graph;
 		OpenFile.close();
