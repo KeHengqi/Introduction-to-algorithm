@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <string.h>
+#include <vector>
 using namespace std;
 #define Node_type int
 
@@ -78,15 +79,48 @@ public:
 	void Create_graph(ifstream& OpenFile);
 	void Add_edge(Node_type source, Node_type dest);
 	void Search_the_adjacent(Node_type source);
+	static void Initialize_colored_map(int vertex_nu, int color_nu);
+	static void Delete_colored_map(int vertex_nu);
+
+	static void Coloring_map(Vertex* vertex);
 	~Graph();
 	friend class Vertex;
 	friend class Adjnode;
 
 private:
+	static int colored_num;
+	static int** colored_map;
 	Vertex* vertexs;
 	int vertex_num;
 	int color_num;
+	vector<Node_type> max_degree_nodes;
+	int max_degree;
 };
+
+int Graph::colored_num = 0;
+int** Graph::colored_map = NULL;
+
+/* Node start from 1 */
+void Graph::Initialize_colored_map(int vertex_nu, int color_nu)
+{
+	int i;
+	colored_map = new int* [vertex_nu + 1];
+	for (i = 1; i < vertex_nu + 1; i++)
+	{
+		colored_map[i] = new int [color_nu];
+	}
+}
+
+/* Node start from 1 */
+void Graph::Delete_colored_map(int vertex_nu)
+{
+	int i;
+	for (i = 1; i < vertex_nu + 1; i++)
+	{
+		delete[] colored_map[i];
+	}
+	delete[] colored_map;
+}
 
 /* In order to find out the adjacent node */
 void Graph::Search_the_adjacent(Node_type source)
@@ -112,6 +146,7 @@ void Graph::Search_the_adjacent(Node_type source)
 Graph::Graph(int vn, int cn)
 {
 	vertexs = new Vertex[vn + 1];
+	colored_map = new int*[vn + 1];
 	int i;
 	/* Time complexity: O(N) */
 	for (i = 1; i < vn + 1; i++)
@@ -122,6 +157,8 @@ Graph::Graph(int vn, int cn)
 	}
 	vertex_num = vn;
 	color_num = cn;
+	Initialize_colored_map(vertex_num, colored_num);
+	max_degree = 0;
 }
 
 /* Add edge function */
@@ -204,8 +241,40 @@ void Graph::Create_graph(ifstream& OpenFile)
 		{
 			OpenFile >> source >> dest;
 			Add_edge(source, dest);
+
+			/* get the max degree nodes and max degree number */
+			if (vertexs[source].degree > max_degree)
+			{
+				/* As there has a larger degree num, so the origin max nodes are not the first choice, and we need to empty it */
+				vector<Node_type>().swap(max_degree_nodes);
+				max_degree_nodes.push_back(source);
+				max_degree = vertexs[source].degree;
+				//max_degree_node = source;
+			}
+			else if (vertexs[source].degree == max_degree)
+			{
+				max_degree_nodes.push_back(source);
+			}
+
+			if (vertexs[dest].degree > max_degree)
+			{
+				/* Same as the source part */
+				vector<Node_type>().swap(max_degree_nodes);
+				max_degree_nodes.push_back(dest);
+				max_degree = vertexs[dest].degree;
+				//max_degree_node = dest;
+			}
+			else if (vertexs[dest].degree == max_degree)
+			{
+				max_degree_nodes.push_back(dest);
+			}
+
 		}
 	}
+}
+
+void Graph::Coloring_map(Vertex* vertex)
+{
 
 }
 
@@ -213,6 +282,7 @@ void Graph::Create_graph(ifstream& OpenFile)
 Graph::~Graph()
 {
 	delete[] vertexs;
+	Delete_colored_map(vertex_num);
 	vertex_num = 0;
 }
 
@@ -276,13 +346,6 @@ int main()
 		graph = new Graph(num_of_vertice, num_of_color);
 		graph->Create_graph(OpenFile);
 
-		int t = 10;
-		while (t--)
-		{
-			int s;
-			cin >> s;
-			graph->Search_the_adjacent(s);
-		}
 
 		delete graph;
 		OpenFile.close();
