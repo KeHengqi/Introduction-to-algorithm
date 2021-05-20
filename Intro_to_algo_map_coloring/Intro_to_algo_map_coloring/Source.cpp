@@ -101,8 +101,10 @@ private:
 	int vertex_num;
 	/* Stores the number of color */
 	int color_num;
+	/* Stores the list of the nodes have minimum choice of color */
+	vector<Node_type> min_color;
 	/* Stores the list of the nodes that have max degree and minimum choice of color */
-	vector<Node_type> max_degree_nodes;
+	Node_type min_color_max_degree_node;
 	/* Stores the max degree in the graph so far */
 	int max_degree;
 	/* Stores the number of solution */
@@ -285,28 +287,30 @@ void Graph::Create_graph(ifstream& OpenFile)
 			if (vertexs[source].degree > max_degree)
 			{
 				/* As there has a larger degree num, so the origin max nodes are not the first choice, and we need to empty it */
-				vector<Node_type>().swap(max_degree_nodes);
-				max_degree_nodes.push_back(source);
+				//vector<Node_type>().swap(min_color_max_degree_nodes);
+				//min_color_max_degree_nodes.push_back(source);
+				min_color_max_degree_node = source;
 				max_degree = vertexs[source].degree;
 				//max_degree_node = source;
 			}
-			else if (vertexs[source].degree == max_degree)
-			{
-				max_degree_nodes.push_back(source);
-			}
+			//else if (vertexs[source].degree == max_degree)
+			//{
+			//	min_color_max_degree_nodes.push_back(source);
+			//}
 
 			if (vertexs[dest].degree > max_degree)
 			{
 				/* Same as the source part */
-				vector<Node_type>().swap(max_degree_nodes);
-				max_degree_nodes.push_back(dest);
+				//vector<Node_type>().swap(min_color_max_degree_nodes);
+				//min_color_max_degree_nodes.push_back(dest);
+				min_color_max_degree_node = dest;
 				max_degree = vertexs[dest].degree;
 				//max_degree_node = dest;
 			}
-			else if (vertexs[dest].degree == max_degree)
-			{
-				max_degree_nodes.push_back(dest);
-			}
+			//else if (vertexs[dest].degree == max_degree)
+			//{
+			//	min_color_max_degree_nodes.push_back(dest);
+			//}
 
 		}
 	}
@@ -317,7 +321,7 @@ void Graph::Coloring_map(int colored_num)
 {
 	if (colored_num == 0)
 	{
-		Color_the_vertex(this->max_degree_nodes.front());
+		Color_the_vertex(this->min_color_max_degree_node);
 		Coloring_map(++colored_num);
 	}
 	else if (colored_num == this->vertex_num)
@@ -325,14 +329,59 @@ void Graph::Coloring_map(int colored_num)
 		solution_num++;
 	}
 	else
-	{ 
-		int min_color = this->min_color_num;
+	{
+		//vector<Node_type>().swap(min_color_max_degree_nodes);
+		/* Set the node going to color into an impossible number */
+		min_color_max_degree_node = -1;
+		int min_color = this->color_num;
 		int max_degree_num = this->max_degree;
 		for (int i = 1; i < vertex_num + 1; i++)
 		{
-			if (vertexs[i].Left_color_num == min_color)
+			if (vertexs[i].vertex_color != -1)
 			{
-				if ()
+				continue;
+			}
+			else
+			{
+				if (min_color_max_degree_node == -1)
+				{
+					min_color_max_degree_node = i;
+					min_color = vertexs[i].Left_color_num;
+					max_degree_num = vertexs[i].degree;
+				}
+				else
+				{
+					if (vertexs[i].Left_color_num < vertexs[min_color_max_degree_node].Left_color_num)
+					{
+						min_color_max_degree_node = i;
+						min_color = vertexs[i].Left_color_num;
+					}
+					else if (vertexs[i].Left_color_num == vertexs[min_color_max_degree_node].Left_color_num)
+					{
+						if (vertexs[min_color_max_degree_node].degree < vertexs[i].degree)
+						{
+							min_color_max_degree_node = i;
+							max_degree_num = vertexs[i].degree;
+						}
+					}
+				}
+				//if (vertexs[i].Left_color_num <= min_color)
+				//{
+				//	if (vertexs[i].Left_color_num < min_color)
+				//	{
+				//		/* As there have smaller number of left color, the origin data in the vector is useless, so empty it */
+				//		//vector<Node_type>().swap(min_color_max_degree_nodes);
+				//		/* Update the vector */
+				//		min_color_max_degree_node = i;
+				//		/* Update the minimum color number */
+				//		min_color = vertexs[i].Left_color_num;
+				//	}
+				//	//this->min_color.push_back(i);
+				//	if (vertexs[i].Left_color_num == min_color && vertexs[i].degree > )
+				//	{
+				//
+				//	}
+				//}
 			}
 		}
 	}
