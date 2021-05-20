@@ -29,7 +29,7 @@ Adjnode::~Adjnode()
 class Vertex
 {
 public:
-	Vertex(Node_type v = (Node_type) 0, int d = 0, Adjnode* f = NULL, int lcn = 0, int vc = 0) :
+	Vertex(Node_type v = (Node_type) 0, int d = 0, Adjnode* f = NULL, int lcn = 0, int vc = -1) :
 		vertex(v), degree(d), first(f), Left_color_num(lcn), vertex_color(vc) {
 		able_color = NULL;
 	};
@@ -79,26 +79,64 @@ public:
 	void Create_graph(ifstream& OpenFile);
 	void Add_edge(Node_type source, Node_type dest);
 	void Search_the_adjacent(Node_type source);
-	static void Initialize_colored_map(int vertex_nu, int color_nu);
-	static void Delete_colored_map(int vertex_nu);
+	void Initialize_colored_map(int vertex_nu, int color_nu);
+	void Delete_colored_map(int vertex_nu);
+	int Color_the_vertex(Node_type vertex_num);
 
-	static void Coloring_map(Vertex* vertex);
+	void Coloring_map(int colored_num);
 	~Graph();
 	friend class Vertex;
 	friend class Adjnode;
 
 private:
-	static int colored_num;
-	static int** colored_map;
+	/* the vertexs are colored */
+	int colored_num;
+	/* solution of coloring map */
+	int** colored_map;
+	/* minimum number of color a vertex can choose in the graph */
+	int min_color_num;
+	/* Stores the vertexs message */
 	Vertex* vertexs;
+	/* Stores the number of vertex */
 	int vertex_num;
+	/* Stores the number of color */
 	int color_num;
+	/* Stores the list of the nodes that have max degree and minimum choice of color */
 	vector<Node_type> max_degree_nodes;
+	/* Stores the max degree in the graph so far */
 	int max_degree;
+	/* Stores the number of solution */
+	int solution_num;
 };
 
-int Graph::colored_num = 0;
-int** Graph::colored_map = NULL;
+/* Atomic operation of coloring a vertex */
+int Graph::Color_the_vertex(Node_type vertex_num)
+{
+	Adjnode* p = vertexs[vertex_num].first;
+	for (int i = 0; i < this->color_num; i++)
+	{
+		/* 0 means the color can be used */
+		if (vertexs[vertex_num].able_color[i] == 0)
+		{
+			/* 2 means the color is used as this vertex color*/
+			vertexs[vertex_num].able_color[i] = 2;
+			vertexs[vertex_num].vertex_color = i;
+			while (p)
+			{
+				/* 1 means the color is used by a adjadence node */
+				vertexs[p->node_num].able_color[i] = 1;
+				/* if the vertex not be colored and the degree of it is not 0 */
+				if (vertexs[p->node_num].degree != 0 && vertexs[p->node_num].vertex_color == -1)
+				{
+					vertexs[p->node_num].degree--;
+				}
+				this->colored_num++;
+				p = p->next;
+			}
+		}
+	}
+	return vertexs[vertex_num].vertex_color;
+}
 
 /* Node start from 1 */
 void Graph::Initialize_colored_map(int vertex_nu, int color_nu)
@@ -158,6 +196,7 @@ Graph::Graph(int vn, int cn)
 	vertex_num = vn;
 	color_num = cn;
 	Initialize_colored_map(vertex_num, colored_num);
+	solution_num = 0;
 	max_degree = 0;
 }
 
@@ -273,9 +312,30 @@ void Graph::Create_graph(ifstream& OpenFile)
 	}
 }
 
-void Graph::Coloring_map(Vertex* vertex)
+/* i start from 1 */
+void Graph::Coloring_map(int colored_num)
 {
-
+	if (colored_num == 0)
+	{
+		Color_the_vertex(this->max_degree_nodes.front());
+		Coloring_map(++colored_num);
+	}
+	else if (colored_num == this->vertex_num)
+	{
+		solution_num++;
+	}
+	else
+	{ 
+		int min_color = this->min_color_num;
+		int max_degree_num = this->max_degree;
+		for (int i = 1; i < vertex_num + 1; i++)
+		{
+			if (vertexs[i].Left_color_num == min_color)
+			{
+				if ()
+			}
+		}
+	}
 }
 
 /* Need to be updated */
