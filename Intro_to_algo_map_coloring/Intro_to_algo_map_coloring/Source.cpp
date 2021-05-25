@@ -4,6 +4,7 @@
 #include <string>
 #include <string.h>
 #include <vector>
+#include <algorithm>
 using namespace std;
 #define Node_type int
 
@@ -36,6 +37,8 @@ public:
 	~Vertex();
 	friend class Graph;
 	friend class Adjnode;
+	friend bool cmp_leftColor(Vertex a, Vertex b);
+	friend bool cmp_degree(Vertex a, Vertex b);
 private:
 	/* Store the vertex message */
 	Node_type vertex;
@@ -82,6 +85,7 @@ public:
 	void Initialize_colored_map(int vertex_nu, int color_nu);
 	void Delete_colored_map(int vertex_nu);
 	int Color_the_vertex(Node_type vertex_num);
+	int get_solution_num();
 
 	void Coloring_map(int colored_num);
 	~Graph();
@@ -111,7 +115,20 @@ private:
 	int solution_num;
 };
 
+
+bool cmp_leftColor(Vertex a, Vertex b) 
+{
+	return a.Left_color_num < b.Left_color_num;
+}
+
+bool cmp_degree(Vertex a, Vertex b) 
+{
+	return a.degree > b.degree;
+}
+
 /* Atomic operation of coloring a vertex */
+/* Return the value of vertex_color */
+/* If return -1, then the coloring is failed, else success */
 int Graph::Color_the_vertex(Node_type vertex_num)
 {
 	Adjnode* p = vertexs[vertex_num].first;
@@ -316,75 +333,145 @@ void Graph::Create_graph(ifstream& OpenFile)
 	}
 }
 
+
+
 /* i start from 1 */
 void Graph::Coloring_map(int colored_num)
 {
-	if (colored_num == 0)
+	if (colored_num > this->vertex_num)
 	{
-		Color_the_vertex(this->min_color_max_degree_node);
-		Coloring_map(++colored_num);
-	}
-	else if (colored_num == this->vertex_num)
-	{
-		solution_num++;
+		this->solution_num++;
 	}
 	else
 	{
-		//vector<Node_type>().swap(min_color_max_degree_nodes);
-		/* Set the node going to color into an impossible number */
-		min_color_max_degree_node = -1;
-		int min_color = this->color_num;
-		int max_degree_num = this->max_degree;
-		for (int i = 1; i < vertex_num + 1; i++)
+
+		int not_colored_num = this->vertex_num - this->colored_num + 1;
+		Vertex* asc_left_color_node = new Vertex[not_colored_num];
+		//Vertex* des_degree_node = new Vertex[not_colored_num];
+		for (int i = 1, j = 1; i <= this->vertex_num; i++)
 		{
-			if (vertexs[i].vertex_color != -1)
+			if (this->vertexs[i].vertex_color == -1)
 			{
-				continue;
+				asc_left_color_node[j] = vertexs[i];
+				//des_degree_node[j] = vertexs[i];
+				j++;
 			}
-			else
+		}
+		/* sort the vertex ascending by left color number */
+		sort(asc_left_color_node + 1, asc_left_color_node + (this->vertex_num - this->colored_num + 1), cmp_leftColor);
+		/* sort the vertex with the same left color by degree */
+		for (int i = 1; i < not_colored_num;)
+		{
+			if (i < not_colored_num - 1)
 			{
-				if (min_color_max_degree_node == -1)
-				{
-					min_color_max_degree_node = i;
-					min_color = vertexs[i].Left_color_num;
-					max_degree_num = vertexs[i].degree;
+				if (asc_left_color_node[i].Left_color_num == asc_left_color_node[i + 1].Left_color_num) {
+					int least_left_color_num = asc_left_color_node[1].Left_color_num;
+					int counter;
+					for (counter = i; counter <= this->vertex_num - this->colored_num; counter++)
+					{
+						if (asc_left_color_node[counter].Left_color_num != least_left_color_num)
+						{
+							break;
+						}
+					}
+					sort(asc_left_color_node + i, asc_left_color_node + counter, cmp_degree);
+					i += counter;
 				}
 				else
 				{
-					if (vertexs[i].Left_color_num < vertexs[min_color_max_degree_node].Left_color_num)
-					{
-						min_color_max_degree_node = i;
-						min_color = vertexs[i].Left_color_num;
-					}
-					else if (vertexs[i].Left_color_num == vertexs[min_color_max_degree_node].Left_color_num)
-					{
-						if (vertexs[min_color_max_degree_node].degree < vertexs[i].degree)
-						{
-							min_color_max_degree_node = i;
-							max_degree_num = vertexs[i].degree;
-						}
-					}
+					i++;
 				}
-				//if (vertexs[i].Left_color_num <= min_color)
-				//{
-				//	if (vertexs[i].Left_color_num < min_color)
-				//	{
-				//		/* As there have smaller number of left color, the origin data in the vector is useless, so empty it */
-				//		//vector<Node_type>().swap(min_color_max_degree_nodes);
-				//		/* Update the vector */
-				//		min_color_max_degree_node = i;
-				//		/* Update the minimum color number */
-				//		min_color = vertexs[i].Left_color_num;
-				//	}
-				//	//this->min_color.push_back(i);
-				//	if (vertexs[i].Left_color_num == min_color && vertexs[i].degree > )
-				//	{
-				//
-				//	}
-				//}
+			}
+			else
+			{
+				i++;
+			}
+		}
+		for (int i = 1; i < not_colored_num; i++)
+		{
+			if (Color_the_vertex(asc_left_color_node[i].vertex) != -1)
+			{
+				Coloring_map(++colored_num);
 			}
 		}
 	}
+	//if (colored_num == 0)
+	//{
+	//	Color_the_vertex(this->min_color_max_degree_node);
+	//	Coloring_map(++colored_num);
+	//}
+	//else if (colored_num == this->vertex_num)
+	//{
+	//	solution_num++;
+	//}
+	//else
+	//{
+	//	//vector<Node_type>().swap(min_color_max_degree_nodes);
+	//	/* Set the node going to color into an impossible number */
+	//	min_color_max_degree_node = -1;
+	//	int min_color = this->color_num;
+	//	int max_degree_num = this->max_degree;
+	//	for (int i = 1; i < vertex_num + 1; i++)
+	//	{
+	//		if (vertexs[i].vertex_color != -1)
+	//		{
+	//			continue;
+	//		}
+	//		else
+	//		{
+	//			if (min_color_max_degree_node == -1)
+	//			{
+	//				min_color_max_degree_node = i;
+	//				min_color = vertexs[i].Left_color_num;
+	//				max_degree_num = vertexs[i].degree;
+	//			}
+	//			else
+	//			{
+	//				if (vertexs[i].Left_color_num < vertexs[min_color_max_degree_node].Left_color_num)
+	//				{
+	//					min_color_max_degree_node = i;
+	//					min_color = vertexs[i].Left_color_num;
+	//				}
+	//				else if (vertexs[i].Left_color_num == vertexs[min_color_max_degree_node].Left_color_num)
+	//				{
+	//					if (vertexs[min_color_max_degree_node].degree < vertexs[i].degree)
+	//					{
+	//						min_color_max_degree_node = i;
+	//						max_degree_num = vertexs[i].degree;
+	//					}
+	//				}
+	//			}
+	//			//if (vertexs[i].Left_color_num <= min_color)
+	//			//{
+	//			//	if (vertexs[i].Left_color_num < min_color)
+	//			//	{
+	//			//		/* As there have smaller number of left color, the origin data in the vector is useless, so empty it */
+	//			//		//vector<Node_type>().swap(min_color_max_degree_nodes);
+	//			//		/* Update the vector */
+	//			//		min_color_max_degree_node = i;
+	//			//		/* Update the minimum color number */
+	//			//		min_color = vertexs[i].Left_color_num;
+	//			//	}
+	//			//	//this->min_color.push_back(i);
+	//			//	if (vertexs[i].Left_color_num == min_color && vertexs[i].degree > )
+	//			//	{
+	//			//
+	//			//	}
+	//			//}
+	//		}
+	//	}
+	//	if (Color_the_vertex(min_color_max_degree_node) != -1)
+	//	{
+	//		Coloring_map(++colored_num);
+	//	}
+	//	
+	//}
+}
+
+int Graph::get_solution_num()
+{
+	Coloring_map(0);
+	return this->solution_num;
 }
 
 /* Need to be updated */
@@ -454,7 +541,7 @@ int main()
 		File_input(OpenFile, num_of_vertice, num_of_edge, num_of_color);
 		graph = new Graph(num_of_vertice, num_of_color);
 		graph->Create_graph(OpenFile);
-
+		cout << graph->get_solution_num() << endl;
 
 		delete graph;
 		OpenFile.close();
