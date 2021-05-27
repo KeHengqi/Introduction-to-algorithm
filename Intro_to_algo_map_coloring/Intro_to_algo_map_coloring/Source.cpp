@@ -85,6 +85,8 @@ public:
 	void Initialize_colored_map(int vertex_nu, int color_nu);
 	void Delete_colored_map(int vertex_nu);
 	int Color_the_vertex(Node_type vertex_num);
+	int Color_the_vertex_fixed_color(Node_type vertex_num, int color);
+	int Erase_the_vertex_color(Node_type vertex_num);
 	int get_solution_num();
 
 	void Coloring_map(int colored_num);
@@ -154,6 +156,54 @@ int Graph::Color_the_vertex(Node_type vertex_num)
 			}
 		}
 	}
+	return vertexs[vertex_num].vertex_color;
+}
+
+/* Erase the color on the vertex */
+int Graph::Erase_the_vertex_color(Node_type vertex_num)
+{
+	Adjnode* p = vertexs[vertex_num].first;
+
+	if (vertexs[vertex_num].vertex_color != -1)
+	{
+		int color = vertexs[vertex_num].vertex_color;
+		vertexs[vertex_num].able_color[color] = 0;
+		vertexs[vertex_num].vertex_color = -1;
+		while (p)
+		{
+			vertexs[p->node_num].able_color[color] = 0;
+			vertexs[p->node_num].degree++;
+			p = p->next;
+		}
+		this->colored_num--;
+	}
+	return vertexs[vertex_num].vertex_color;
+}
+
+/* Need to provide which color need to filled */
+int Graph::Color_the_vertex_fixed_color(Node_type vertex_num, int color)
+{
+	Adjnode* p = vertexs[vertex_num].first;
+	/* 0 means the color can be used */
+	if (vertexs[vertex_num].able_color[color] == 0)
+	{
+		/* 2 means the color is used as this vertex color*/
+		vertexs[vertex_num].able_color[color] = 2;
+		vertexs[vertex_num].vertex_color = color;
+		while (p)
+		{
+			/* 1 means the color is used by a adjadence node */
+			vertexs[p->node_num].able_color[color] = 1;
+			/* if the vertex not be colored and the degree of it is not 0 */
+			if (vertexs[p->node_num].degree != 0 && vertexs[p->node_num].vertex_color == -1)
+			{
+				vertexs[p->node_num].degree--;
+			}
+			p = p->next;
+		}
+		this->colored_num++;
+	}
+	
 	return vertexs[vertex_num].vertex_color;
 }
 
@@ -389,9 +439,13 @@ void Graph::Coloring_map(int colored_num)
 		}
 		for (int i = 1; i < not_colored_num; i++)
 		{
-			if (Color_the_vertex(asc_left_color_node[i].vertex) != -1)
+			for (int j = 0; j < this->color_num; j++)
 			{
-				Coloring_map(++colored_num);
+				if (Color_the_vertex_fixed_color(asc_left_color_node[i].vertex, j) != -1)
+				{
+					Coloring_map(++colored_num);
+				}
+				Erase_the_vertex_color(asc_left_color_node[i].vertex);
 			}
 		}
 	}
