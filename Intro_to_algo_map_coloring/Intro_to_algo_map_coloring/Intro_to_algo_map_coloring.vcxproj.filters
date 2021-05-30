@@ -29,5 +29,14 @@
     <None Include="le450_25a.col">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="test.col">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_small.col">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test_very_small.col">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

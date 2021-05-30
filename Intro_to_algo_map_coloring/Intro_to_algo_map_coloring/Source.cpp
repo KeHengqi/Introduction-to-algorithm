@@ -13,6 +13,11 @@ class Adjnode
 public:
 	Adjnode(Node_type nn = 0, Adjnode* n = NULL) : node_num(nn), next(n) {};
 	~Adjnode();
+	Adjnode(Adjnode& a)
+	{
+		node_num = a.node_num;
+		next = new Adjnode;
+	}
 	friend class Graph;
 	friend class Vertex;
 private:
@@ -33,7 +38,27 @@ public:
 	Vertex(Node_type v = (Node_type) 0, int d = 0, Adjnode* f = NULL, int lcn = 0, int vc = -1) :
 		vertex(v), degree(d), first(f), Left_color_num(lcn), vertex_color(vc) {
 		able_color = NULL;
+		able_color_degree = NULL;
 	};
+	//Vertex(Vertex& v)
+	//{
+		//vertex = v.vertex;
+		//degree = v.degree;
+		///* Copy of adjadence node */
+		//Adjnode* pp = v.first;
+		//Adjnode* copypp;
+		//Adjnode* p = first;
+		//while (pp != NULL)
+		//{
+		//	p = new Adjnode;
+		//	p->node_num = pp->node_num;
+		//	p = p->next;
+		//	pp = pp->next;
+		//}
+		//Left_color_num = v.Left_color_num;
+		//vertex_color = v.vertex_color;
+		//able_color = NULL;
+	//}
 	~Vertex();
 	friend class Graph;
 	friend class Adjnode;
@@ -52,42 +77,52 @@ private:
 	int vertex_color;
 	/* Store the color message */
 	int* able_color;
+	/* Store the able_color degree */
+	int* able_color_degree;
 };
 
 /* May have problem */
 Vertex::~Vertex()
 {
-	if (able_color != NULL)
-	{
-		delete[] able_color;
-	}
-	if (first != NULL)
-	{
-		Adjnode* p = first;
-		while (p->next)
-		{
-			Adjnode* Delete = p;
-			p = p->next;
-			delete Delete;
-		}
-		delete p;
-	}
+	/*cout << sizeof(able_color) << endl;
+	cout << sizeof(int) << endl;*/
+	//if (able_color != NULL)
+	//{
+	//	delete[] able_color;
+	//}
+	////else if (sizeof(able_color) / sizeof(int) == 1)
+	////{
+	////	delete able_color;
+	////}
+	//if (first != NULL)
+	//{
+	//	Adjnode* p = first;
+	//	while (p->next)
+	//	{
+	//		Adjnode* Delete = p;
+	//		p = p->next;
+	//		delete Delete;
+	//	}
+	//	delete p;
+	//}
 }
 
 /* Not ordered graph */
 class Graph
 {
 public:
-	Graph(int vn = 0, int cn = 0);
+	Graph(int vn = 0, int cn = 0, int en = 0);
 	void Create_graph(ifstream& OpenFile);
 	void Add_edge(Node_type source, Node_type dest);
 	void Search_the_adjacent(Node_type source);
-	void Initialize_colored_map(int vertex_nu, int color_nu);
-	void Delete_colored_map(int vertex_nu);
+	//void Initialize_colored_map(int vertex_nu, int color_nu);
+	//void Delete_colored_map(int vertex_nu);
 	int Color_the_vertex(Node_type vertex_num);
 	int Color_the_vertex_fixed_color(Node_type vertex_num, int color);
 	int Erase_the_vertex_color(Node_type vertex_num);
 	int get_solution_num();
+	void Print_color();
+	bool move_forward_one_step();
 
 	void Coloring_map(int colored_num);
 	~Graph();
@@ -98,7 +133,7 @@ private:
 	/* the vertexs are colored */
 	int colored_num;
 	/* solution of coloring map */
-	int** colored_map;
+	//int** colored_map;
 	/* minimum number of color a vertex can choose in the graph */
 	int min_color_num;
 	/* Stores the vertexs message */
@@ -115,6 +150,8 @@ private:
 	int max_degree;
 	/* Stores the number of solution */
 	int solution_num;
+	/* Stores the number of edge */
+	int edge_num;
 };
 
 
@@ -126,6 +163,27 @@ bool cmp_leftColor(Vertex a, Vertex b)
 bool cmp_degree(Vertex a, Vertex b) 
 {
 	return a.degree > b.degree;
+}
+
+bool Graph::move_forward_one_step()
+{
+	for (int i = 1; i <= vertex_num; i++)
+	{
+		if (vertexs[i].Left_color_num == 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void Graph::Print_color()
+{
+	for (int i = 1; i <= vertex_num; i++)
+	{
+		cout << "vertex " << i << ": " << vertexs[i].vertex_color << endl;
+	}
+	cout << endl;
 }
 
 /* Atomic operation of coloring a vertex */
@@ -169,9 +227,15 @@ int Graph::Erase_the_vertex_color(Node_type vertex_num)
 		int color = vertexs[vertex_num].vertex_color;
 		vertexs[vertex_num].able_color[color] = 0;
 		vertexs[vertex_num].vertex_color = -1;
+		vertexs[vertex_num].Left_color_num++;
 		while (p)
 		{
-			vertexs[p->node_num].able_color[color] = 0;
+			vertexs[p->node_num].able_color_degree[color]--;
+			if (vertexs[p->node_num].able_color[color] == 1 && vertexs[p->node_num].able_color_degree[color] == 0)
+			{
+				vertexs[p->node_num].able_color[color] = 0;
+				vertexs[p->node_num].Left_color_num++;
+			}
 			vertexs[p->node_num].degree++;
 			p = p->next;
 		}
@@ -184,50 +248,66 @@ int Graph::Erase_the_vertex_color(Node_type vertex_num)
 int Graph::Color_the_vertex_fixed_color(Node_type vertex_num, int color)
 {
 	Adjnode* p = vertexs[vertex_num].first;
+	int flag_for_no_color = 0;
 	/* 0 means the color can be used */
 	if (vertexs[vertex_num].able_color[color] == 0)
 	{
 		/* 2 means the color is used as this vertex color*/
 		vertexs[vertex_num].able_color[color] = 2;
 		vertexs[vertex_num].vertex_color = color;
+		vertexs[vertex_num].Left_color_num--;
 		while (p)
 		{
 			/* 1 means the color is used by a adjadence node */
-			vertexs[p->node_num].able_color[color] = 1;
+			//vertexs[p->node_num].able_color[color] = 1;
 			/* if the vertex not be colored and the degree of it is not 0 */
-			if (vertexs[p->node_num].degree != 0 && vertexs[p->node_num].vertex_color == -1)
+			if (vertexs[p->node_num].degree != 0)
 			{
 				vertexs[p->node_num].degree--;
 			}
+			if (vertexs[p->node_num].able_color[color] != 1)
+			{
+				vertexs[p->node_num].able_color[color] = 1;
+				vertexs[p->node_num].Left_color_num--;
+				if (vertexs[p->node_num].Left_color_num == 0 && vertexs[p->node_num].vertex_color == -1)
+				{
+					flag_for_no_color = 1;
+				}
+			}
+			vertexs[p->node_num].able_color_degree[color]++;
 			p = p->next;
 		}
 		this->colored_num++;
 	}
-	
+	if (flag_for_no_color == 1)
+	{
+		Erase_the_vertex_color(vertex_num);
+		return -1;
+	}
 	return vertexs[vertex_num].vertex_color;
 }
 
 /* Node start from 1 */
-void Graph::Initialize_colored_map(int vertex_nu, int color_nu)
-{
-	int i;
-	colored_map = new int* [vertex_nu + 1];
-	for (i = 1; i < vertex_nu + 1; i++)
-	{
-		colored_map[i] = new int [color_nu];
-	}
-}
+//void Graph::Initialize_colored_map(int vertex_nu, int color_nu)
+//{
+//	int i;
+//	colored_map = new int* [vertex_nu + 1];
+//	for (i = 1; i < vertex_nu + 1; i++)
+//	{
+//		colored_map[i] = new int [color_nu];
+//	}
+//}
 
 /* Node start from 1 */
-void Graph::Delete_colored_map(int vertex_nu)
-{
-	int i;
-	for (i = 1; i < vertex_nu + 1; i++)
-	{
-		delete[] colored_map[i];
-	}
-	delete[] colored_map;
-}
+//void Graph::Delete_colored_map(int vertex_nu)
+//{
+//	int i;
+//	for (i = 1; i < vertex_nu + 1; i++)
+//	{
+//		delete[] colored_map[i];
+//	}
+//	delete[] colored_map;
+//}
 
 /* In order to find out the adjacent node */
 void Graph::Search_the_adjacent(Node_type source)
@@ -250,10 +330,10 @@ void Graph::Search_the_adjacent(Node_type source)
 }
 
 /* TODO: Need to improve the robustness, but now need to finish the experiment */
-Graph::Graph(int vn, int cn)
+Graph::Graph(int vn, int cn, int en)
 {
 	vertexs = new Vertex[vn + 1];
-	colored_map = new int*[vn + 1];
+	//colored_map = new int*[vn + 1];
 	int i;
 	/* Time complexity: O(N) */
 	for (i = 1; i < vn + 1; i++)
@@ -261,12 +341,19 @@ Graph::Graph(int vn, int cn)
 		vertexs[i].vertex = i;
 		vertexs[i].Left_color_num = cn;
 		vertexs[i].able_color = new int[cn];
+		vertexs[i].able_color_degree = new int[cn];
+		for (int j = 0; j < cn; j++)
+		{
+			vertexs[i].able_color[j] = 0;
+			vertexs[i].able_color_degree[j] = 0;
+		}
 	}
 	vertex_num = vn;
 	color_num = cn;
-	Initialize_colored_map(vertex_num, colored_num);
+	//Initialize_colored_map(vertex_num, colored_num);
 	solution_num = 0;
 	max_degree = 0;
+	edge_num = en;
 }
 
 /* Add edge function */
@@ -341,7 +428,8 @@ void Graph::Create_graph(ifstream& OpenFile)
 {
 	char type;
 	Node_type source, dest;
-	while (!OpenFile.eof())
+	int counter = 0;
+	while (!OpenFile.eof() && counter < this->edge_num)
 	{
 		OpenFile >> type;
 		int i;
@@ -349,31 +437,32 @@ void Graph::Create_graph(ifstream& OpenFile)
 		{
 			OpenFile >> source >> dest;
 			Add_edge(source, dest);
+			counter++;
 
 			/* get the max degree nodes and max degree number */
-			if (vertexs[source].degree > max_degree)
-			{
-				/* As there has a larger degree num, so the origin max nodes are not the first choice, and we need to empty it */
-				//vector<Node_type>().swap(min_color_max_degree_nodes);
-				//min_color_max_degree_nodes.push_back(source);
-				min_color_max_degree_node = source;
-				max_degree = vertexs[source].degree;
-				//max_degree_node = source;
-			}
-			//else if (vertexs[source].degree == max_degree)
+			//if (vertexs[source].degree > max_degree)
 			//{
-			//	min_color_max_degree_nodes.push_back(source);
+			//	/* As there has a larger degree num, so the origin max nodes are not the first choice, and we need to empty it */
+			//	//vector<Node_type>().swap(min_color_max_degree_nodes);
+			//	//min_color_max_degree_nodes.push_back(source);
+			//	min_color_max_degree_node = source;
+			//	max_degree = vertexs[source].degree;
+			//	//max_degree_node = source;
 			//}
-
-			if (vertexs[dest].degree > max_degree)
-			{
-				/* Same as the source part */
-				//vector<Node_type>().swap(min_color_max_degree_nodes);
-				//min_color_max_degree_nodes.push_back(dest);
-				min_color_max_degree_node = dest;
-				max_degree = vertexs[dest].degree;
-				//max_degree_node = dest;
-			}
+			////else if (vertexs[source].degree == max_degree)
+			////{
+			////	min_color_max_degree_nodes.push_back(source);
+			////}
+			//
+			//if (vertexs[dest].degree > max_degree)
+			//{
+			//	/* Same as the source part */
+			//	//vector<Node_type>().swap(min_color_max_degree_nodes);
+			//	//min_color_max_degree_nodes.push_back(dest);
+			//	min_color_max_degree_node = dest;
+			//	max_degree = vertexs[dest].degree;
+			//	//max_degree_node = dest;
+			//}
 			//else if (vertexs[dest].degree == max_degree)
 			//{
 			//	min_color_max_degree_nodes.push_back(dest);
@@ -388,13 +477,14 @@ void Graph::Create_graph(ifstream& OpenFile)
 /* i start from 1 */
 void Graph::Coloring_map(int colored_num)
 {
-	if (colored_num > this->vertex_num)
+	int level = colored_num;
+	if (colored_num >= this->vertex_num)
 	{
 		this->solution_num++;
+		//this->Print_color();
 	}
 	else
 	{
-
 		int not_colored_num = this->vertex_num - this->colored_num + 1;
 		Vertex* asc_left_color_node = new Vertex[not_colored_num];
 		//Vertex* des_degree_node = new Vertex[not_colored_num];
@@ -415,7 +505,7 @@ void Graph::Coloring_map(int colored_num)
 			if (i < not_colored_num - 1)
 			{
 				if (asc_left_color_node[i].Left_color_num == asc_left_color_node[i + 1].Left_color_num) {
-					int least_left_color_num = asc_left_color_node[1].Left_color_num;
+					int least_left_color_num = asc_left_color_node[i].Left_color_num;
 					int counter;
 					for (counter = i; counter <= this->vertex_num - this->colored_num; counter++)
 					{
@@ -425,7 +515,7 @@ void Graph::Coloring_map(int colored_num)
 						}
 					}
 					sort(asc_left_color_node + i, asc_left_color_node + counter, cmp_degree);
-					i += counter;
+					i = counter;
 				}
 				else
 				{
@@ -437,89 +527,22 @@ void Graph::Coloring_map(int colored_num)
 				i++;
 			}
 		}
-		for (int i = 1; i < not_colored_num; i++)
-		{
+
+		//for (int i = 1; i < not_colored_num; i++)
+		//{
 			for (int j = 0; j < this->color_num; j++)
 			{
-				if (Color_the_vertex_fixed_color(asc_left_color_node[i].vertex, j) != -1)
+				if (Color_the_vertex_fixed_color(asc_left_color_node[1].vertex, j) != -1)
 				{
-					Coloring_map(++colored_num);
+   					Coloring_map(++colored_num);
 				}
-				Erase_the_vertex_color(asc_left_color_node[i].vertex);
+				Erase_the_vertex_color(asc_left_color_node[1].vertex);
+				colored_num = level;
+				//colored_num--;
 			}
-		}
+		//}
+		delete[] asc_left_color_node;
 	}
-	//if (colored_num == 0)
-	//{
-	//	Color_the_vertex(this->min_color_max_degree_node);
-	//	Coloring_map(++colored_num);
-	//}
-	//else if (colored_num == this->vertex_num)
-	//{
-	//	solution_num++;
-	//}
-	//else
-	//{
-	//	//vector<Node_type>().swap(min_color_max_degree_nodes);
-	//	/* Set the node going to color into an impossible number */
-	//	min_color_max_degree_node = -1;
-	//	int min_color = this->color_num;
-	//	int max_degree_num = this->max_degree;
-	//	for (int i = 1; i < vertex_num + 1; i++)
-	//	{
-	//		if (vertexs[i].vertex_color != -1)
-	//		{
-	//			continue;
-	//		}
-	//		else
-	//		{
-	//			if (min_color_max_degree_node == -1)
-	//			{
-	//				min_color_max_degree_node = i;
-	//				min_color = vertexs[i].Left_color_num;
-	//				max_degree_num = vertexs[i].degree;
-	//			}
-	//			else
-	//			{
-	//				if (vertexs[i].Left_color_num < vertexs[min_color_max_degree_node].Left_color_num)
-	//				{
-	//					min_color_max_degree_node = i;
-	//					min_color = vertexs[i].Left_color_num;
-	//				}
-	//				else if (vertexs[i].Left_color_num == vertexs[min_color_max_degree_node].Left_color_num)
-	//				{
-	//					if (vertexs[min_color_max_degree_node].degree < vertexs[i].degree)
-	//					{
-	//						min_color_max_degree_node = i;
-	//						max_degree_num = vertexs[i].degree;
-	//					}
-	//				}
-	//			}
-	//			//if (vertexs[i].Left_color_num <= min_color)
-	//			//{
-	//			//	if (vertexs[i].Left_color_num < min_color)
-	//			//	{
-	//			//		/* As there have smaller number of left color, the origin data in the vector is useless, so empty it */
-	//			//		//vector<Node_type>().swap(min_color_max_degree_nodes);
-	//			//		/* Update the vector */
-	//			//		min_color_max_degree_node = i;
-	//			//		/* Update the minimum color number */
-	//			//		min_color = vertexs[i].Left_color_num;
-	//			//	}
-	//			//	//this->min_color.push_back(i);
-	//			//	if (vertexs[i].Left_color_num == min_color && vertexs[i].degree > )
-	//			//	{
-	//			//
-	//			//	}
-	//			//}
-	//		}
-	//	}
-	//	if (Color_the_vertex(min_color_max_degree_node) != -1)
-	//	{
-	//		Coloring_map(++colored_num);
-	//	}
-	//	
-	//}
 }
 
 int Graph::get_solution_num()
@@ -532,7 +555,7 @@ int Graph::get_solution_num()
 Graph::~Graph()
 {
 	delete[] vertexs;
-	Delete_colored_map(vertex_num);
+	//Delete_colored_map(vertex_num);
 	vertex_num = 0;
 }
 
@@ -593,7 +616,7 @@ int main()
 		ifstream OpenFile(path);
 		int num_of_vertice, num_of_edge, num_of_color;
 		File_input(OpenFile, num_of_vertice, num_of_edge, num_of_color);
-		graph = new Graph(num_of_vertice, num_of_color);
+		graph = new Graph(num_of_vertice, num_of_color, num_of_edge);
 		graph->Create_graph(OpenFile);
 		cout << graph->get_solution_num() << endl;
 
