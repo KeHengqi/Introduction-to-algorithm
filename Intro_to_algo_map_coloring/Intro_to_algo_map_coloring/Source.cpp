@@ -5,6 +5,7 @@
 #include <string.h>
 #include <vector>
 #include <algorithm>
+#include <ctime>
 using namespace std;
 #define Node_type int
 
@@ -606,6 +607,7 @@ Graph* graph;
 int main()
 {
 	char input_type;
+	clock_t Time = 0;
 	cin >> input_type;
 	if (input_type == 'f' || input_type == 'F')
 	{
@@ -618,7 +620,10 @@ int main()
 		File_input(OpenFile, num_of_vertice, num_of_edge, num_of_color);
 		graph = new Graph(num_of_vertice, num_of_color, num_of_edge);
 		graph->Create_graph(OpenFile);
+		Time -= clock();
 		cout << graph->get_solution_num() << endl;
+		Time += clock();
+		cout << "Usage time : " << (double)Time / 1000.0 << endl;
 
 		delete graph;
 		OpenFile.close();
